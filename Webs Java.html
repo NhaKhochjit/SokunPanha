@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini E-Commerce Store</title>
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#fff; --accent:#0b6ef6; --muted:#6b7280;
+      --shadow: 0 6px 18px rgba(15,23,42,0.08);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    body{margin:0; background:var(--bg); color:#111;}
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:18px 24px; background:linear-gradient(90deg,#ffffff88,#f2f6ff88);
+      box-shadow:0 1px 0 rgba(0,0,0,0.04); position:sticky; top:0; z-index:5;
+    }
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:40px;height:40px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+    h1{font-size:16px;margin:0}
+    .controls{display:flex;gap:12px;align-items:center}
+    .cart-btn{
+      background:var(--card); border:1px solid #e6e9ef; padding:8px 12px;border-radius:8px;
+      display:flex; gap:8px; align-items:center; cursor:pointer; box-shadow:var(--shadow);
+    }
+    .container{max-width:1100px;margin:28px auto;padding:0 20px;display:grid;grid-template-columns:1fr 320px;gap:24px;}
+    .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:18px}
+    .product{
+      background:var(--card); padding:14px; border-radius:12px; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .thumb{
+      height:150px;border-radius:10px;background:#eef2ff;
+      display:flex;align-items:center;justify-content:center;overflow:hidden;
+    }
+    .thumb img{width:100%; height:100%; object-fit:cover;}
+    .p-title{font-weight:600}
+    .p-desc{font-size:13px;color:var(--muted); margin-top:4px; flex:1}
+    .p-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .price{font-weight:700}
+    button.add{
+      background:var(--accent); color:#fff; border:0; padding:8px 10px;border-radius:8px;cursor:pointer;
+    }
+    /* Cart drawer / sidebar */
+    .cart{
+      background:var(--card); padding:14px;border-radius:12px; box-shadow:var(--shadow); height:fit-content;
+      display:flex;flex-direction:column; gap:12px;
+    }
+    .cart h2{margin:0;font-size:16px}
+    .cart-list{display:flex;flex-direction:column;gap:10px; max-height:420px; overflow:auto; padding-right:6px}
+    .cart-item{display:flex; gap:10px; align-items:center; background:#fbfdff; padding:8px; border-radius:10px; border:1px solid #f0f4ff}
+    .ci-thumb{
+      width:56px;height:56px;border-radius:8px; background:#eef2ff;
+      display:flex;align-items:center;justify-content:center;overflow:hidden;
+    }
+    .ci-thumb img{width:100%; height:100%; object-fit:cover;}
+    footer{max-width:1100px;margin:30px auto;color:var(--muted); font-size:13px; text-align:center}
+    @media (max-width:900px){
+      .container{grid-template-columns:1fr; padding-bottom:40px}
+      .cart{order:2}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">ME</div>
+      <div>
+        <h1>Mini E-Store</h1>
+        <div class="muted" style="font-size:13px">Demo store — no real payments</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="cart-btn" id="openCartBtn" title="Open cart">
+        🛒 <div id="cartCount">0</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <h2>Products</h2>
+      <div class="products" id="products"></div>
+    </section>
+
+    <aside class="cart" id="cartPanel">
+      <h2>Cart</h2>
+      <div class="cart-list" id="cartList"></div>
+      <button id="checkoutBtn" class="add">Checkout</button>
+    </aside>
+  </main>
+
+  <footer>Built with ❤️ — Demo Only</footer>
+
+<script>
+  /* ✔ Updated PRODUCTS list with real images */
+  const PRODUCTS = [
+    {
+      id: 'p1',
+      title: 'Comfy T-Shirt',
+      price: 14.99,
+      desc: 'Soft cotton tee, unisex',
+      img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b'
+    },
+    {
+      id: 'p2',
+      title: 'Stylish Mug',
+      price: 9.50,
+      desc: 'Ceramic, 350ml',
+      img: 'https://images.unsplash.com/photo-1600170311833-0c14f84f0c39'
+    },
+    {
+      id: 'p3',
+      title: 'Wireless Earbuds',
+      price: 39.99,
+      desc: 'Bluetooth, long battery',
+      img: 'https://images.unsplash.com/photo-1585386959984-a41552231693'
+    },
+    {
+      id: 'p4',
+      title: 'Notebook',
+      price: 6.99,
+      desc: 'A5, 120 pages',
+      img: 'https://images.unsplash.com/photo-1519681393784-d120267933ba'
+    },
+    {
+      id: 'p5',
+      title: 'Minimalist Watch',
+      price: 79.00,
+      desc: 'Quartz movement',
+      img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30'
+    }
+  ];
+
+  let cart = {};
+  const productsNode = document.getElementById('products');
+  const cartListNode = document.getElementById('cartList');
+  const cartCountNode = document.getElementById('cartCount');
+
+  function renderProducts() {
+    productsNode.innerHTML = "";
+    PRODUCTS.forEach(p => {
+      const el = document.createElement("div");
+      el.className = "product";
+      el.innerHTML = `
+        <div class="thumb"><img src="${p.img}" alt=""></div>
+        <div class="p-title">${p.title}</div>
+        <div class="p-desc">${p.desc}</div>
+        <div class="p-row">
+          <div class="price">$${p.price.toFixed(2)}</div>
+          <button class="add" data-id="${p.id}">Add</button>
+        </div>`;
+      productsNode.appendChild(el);
+    });
+  }
+
+  function renderCart() {
+    cartListNode.innerHTML = "";
+    const ids = Object.keys(cart);
+    cartCountNode.textContent = ids.reduce((t,id) => t + cart[id].qty, 0);
+
+    if (ids.length === 0) {
+      cartListNode.innerHTML = "<p>Your cart is empty</p>";
+      return;
+    }
+
+    ids.forEach(id => {
+      const item = cart[id];
+      const row = document.createElement("div");
+      row.className = "cart-item";
+      row.innerHTML = `
+        <div class="ci-thumb"><img src="${item.product.img}"></div>
+        <div>
+          <b>${item.product.title}</b><br>
+          $${item.product.price.toFixed(2)} × ${item.qty}
+        </div>
+      `;
+      cartListNode.appendChild(row);
+    });
+  }
+
+  document.body.addEventListener("click", e => {
+    if (e.target.matches(".add")) {
+      const id = e.target.dataset.id;
+      const prod = PRODUCTS.find(p => p.id === id);
+      if (!cart[id]) cart[id] = { product: prod, qty: 1 };
+      else cart[id].qty++;
+      renderCart();
+    }
+  });
+
+  document.getElementById("checkoutBtn").onclick = () =>
+    alert("This is a demo checkout!");
+
+  renderProducts();
+  renderCart();
+</script>
+
+</body>
+</html>
